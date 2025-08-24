@@ -1,0 +1,8 @@
+python-server/venv/
+*.tar.gz
+automation-browser-FIXED-*.tar.gz
+automation-browser-*.tar.gz
+node_modules/
+__pycache__/
+*.pyc
+*.pyc

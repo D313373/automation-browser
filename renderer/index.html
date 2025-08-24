@@ -1,0 +1,1781 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Automation Browser</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            overflow: hidden;
+        }
+
+        .main-container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Side Panel */
+        .side-panel {
+            width: 350px;
+            background: #ffffff;
+            border-right: 1px solid #e0e0e0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Toolbar */
+        .toolbar {
+            height: 80px;
+            background: #ffffff;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            gap: 12px;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .nav-btn {
+            width: 32px;
+            height: 32px;
+            border: 1px solid #d0d0d0;
+            background: #ffffff;
+            border-radius: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        .nav-btn:hover {
+            background: #f0f0f0;
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .url-bar {
+            flex: 1;
+            height: 36px;
+            border: 1px solid #d0d0d0;
+            border-radius: 8px;
+            padding: 0 12px;
+            font-size: 14px;
+        }
+
+        .url-bar:focus {
+            outline: none;
+            border-color: #007acc;
+        }
+        
+        /* Enable text selection and clipboard operations */
+        input, textarea {
+            user-select: text !important;
+            -webkit-user-select: text !important;
+            -moz-user-select: text !important;
+            -ms-user-select: text !important;
+        }
+
+        /* Recording Controls */
+        .recording-section {
+            padding: 20px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #333;
+        }
+
+        .recording-controls {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .control-btn {
+            padding: 8px 16px;
+            border: 1px solid #d0d0d0;
+            background: #ffffff;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .control-btn:hover {
+            background: #f0f0f0;
+        }
+
+        .control-btn.primary {
+            background: #007acc;
+            color: white;
+            border-color: #007acc;
+        }
+
+        .control-btn.primary:hover {
+            background: #005a9e;
+        }
+
+        .control-btn.danger {
+            background: #dc3545;
+            color: white;
+            border-color: #dc3545;
+        }
+
+        .control-btn.danger:hover {
+            background: #c82333;
+        }
+
+        /* Credential Modal */
+        .credential-modal {
+            display: none;
+            position: fixed;
+            z-index: 10000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+        }
+
+        .credential-modal-content {
+            background-color: white;
+            margin: 10% auto;
+            padding: 25px;
+            border-radius: 12px;
+            width: 450px;
+            max-width: 90%;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            animation: credentialModalSlide 0.3s ease-out;
+        }
+
+        @keyframes credentialModalSlide {
+            from { transform: translateY(-30px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .credential-form {
+            margin: 20px 0;
+        }
+
+        .credential-field {
+            margin-bottom: 16px;
+        }
+
+        .credential-field label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .credential-field input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.2s ease;
+            box-sizing: border-box;
+        }
+
+        .credential-field input:focus {
+            outline: none;
+            border-color: #007acc;
+            box-shadow: 0 0 0 3px rgba(0, 122, 204, 0.1);
+        }
+
+        .credential-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px;
+            flex-wrap: wrap;
+        }
+
+        .credential-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .credential-btn.primary {
+            background: #007acc;
+            color: white;
+        }
+
+        .credential-btn.primary:hover {
+            background: #005a9e;
+            transform: translateY(-1px);
+        }
+
+        .credential-btn:not(.primary):not(.cancel) {
+            background: #f5f5f5;
+            color: #333;
+            border: 1px solid #ddd;
+        }
+
+        .credential-btn:not(.primary):not(.cancel):hover {
+            background: #e8e8e8;
+        }
+
+        .credential-btn.cancel {
+            background: #dc3545;
+            color: white;
+        }
+
+        .credential-btn.cancel:hover {
+            background: #c82333;
+        }
+
+        /* Record Button */
+        .record-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #007acc;
+            color: white;
+            border-color: #007acc;
+            transition: all 0.3s ease;
+        }
+
+        .record-btn:hover {
+            background: #005a9e;
+        }
+
+        .record-btn:disabled {
+            background: #6c757d;
+            border-color: #6c757d;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        /* Stop Recording Button */
+        .stop-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #dc3545;
+            color: white;
+            border-color: #dc3545;
+            animation: recording-pulse 1.5s infinite;
+            transition: all 0.3s ease;
+        }
+
+        .stop-btn:hover {
+            background: #c82333;
+        }
+
+        .stop-btn:disabled {
+            background: #6c757d;
+            border-color: #6c757d;
+            cursor: not-allowed;
+            opacity: 0.6;
+            animation: none;
+        }
+
+        .record-icon {
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .stop-btn .record-icon {
+            color: #ffebee;
+            animation: recording-blink 1s infinite;
+        }
+
+        @keyframes recording-pulse {
+            0% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.4); }
+            70% { box-shadow: 0 0 0 8px rgba(220, 53, 69, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(220, 53, 69, 0); }
+        }
+
+        @keyframes recording-blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0.3; }
+        }
+
+        /* Hidden state */
+        .hidden {
+            display: none !important;
+        }
+
+        .recording-status {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            font-size: 13px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #6c757d;
+        }
+
+        .status-dot.recording {
+            background: #dc3545;
+            animation: pulse 1s infinite;
+        }
+
+        .status-dot.connected {
+            background: #28a745;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        /* Timeline */
+        .timeline-section {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .action-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .action-item {
+            background: #ffffff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: 13px;
+        }
+
+        .action-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+
+        .action-type {
+            font-weight: 600;
+            color: #007acc;
+        }
+
+        .action-time {
+            color: #6c757d;
+            font-size: 11px;
+        }
+
+        .action-details {
+            color: #555;
+            line-height: 1.4;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #6c757d;
+            padding: 40px 20px;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        /* Web Scraping Tools */
+        .tools-section {
+            padding: 20px;
+            border-top: 1px solid #e0e0e0;
+            background: #f8f9fa;
+        }
+
+        .tool-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .tool-btn {
+            padding: 12px;
+            border: 1px solid #d0d0d0;
+            background: #ffffff;
+            border-radius: 6px;
+            cursor: pointer;
+            text-align: center;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+
+        .tool-btn:hover {
+            background: #f0f0f0;
+            transform: translateY(-1px);
+        }
+
+        .tool-icon {
+            font-size: 18px;
+            margin-bottom: 4px;
+        }
+
+        /* Script Dashboard Styles - Now Main View */
+        .dashboard-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #f5f5f5;
+            z-index: 100000;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .dashboard-overlay.hidden {
+            display: none;
+        }
+        
+        /* Hide main browser interface when dashboard is active */
+        .main-container.dashboard-active {
+            display: none;
+        }
+
+        .dashboard-header {
+            background: #2c3e50;
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .dashboard-title {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .dashboard-close {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .dashboard-content {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        .script-sidebar {
+            width: 300px;
+            background: white;
+            border-right: 1px solid #ddd;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .script-list-header {
+            padding: 15px;
+            background: #34495e;
+            color: white;
+            font-weight: 600;
+        }
+
+        .script-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .script-item {
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            background: white;
+            transition: all 0.2s;
+        }
+
+        .script-item:hover {
+            background: #f8f9fa;
+            border-color: #007acc;
+        }
+
+        .script-item.active {
+            background: #e3f2fd;
+            border-color: #007acc;
+        }
+
+        .script-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .script-meta {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .script-editor {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .editor-toolbar {
+            background: white;
+            border-bottom: 1px solid #ddd;
+            padding: 10px 15px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .editor-btn {
+            padding: 6px 12px;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .editor-btn.primary {
+            background: #007acc;
+            color: white;
+            border-color: #007acc;
+        }
+
+        .timeline-editor {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        .phases-panel {
+            width: 250px;
+            background: #f8f9fa;
+            border-right: 1px solid #ddd;
+            overflow-y: auto;
+        }
+
+        .phase-section {
+            border-bottom: 1px solid #ddd;
+        }
+
+        .phase-header {
+            background: #6c757d;
+            color: white;
+            padding: 12px 15px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .phase-content {
+            padding: 10px;
+            display: none;
+        }
+
+        .phase-content.active {
+            display: block;
+        }
+
+        .condition-block {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 8px;
+        }
+
+        .condition-header {
+            font-weight: 600;
+            color: #856404;
+            margin-bottom: 8px;
+        }
+
+        .action-list-editor {
+            flex: 1;
+            background: white;
+            overflow-y: auto;
+            padding: 15px;
+        }
+
+        .action-item-editor {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 10px;
+            position: relative;
+        }
+
+        .action-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .action-type {
+            font-weight: 600;
+            color: #007acc;
+        }
+
+        .action-controls {
+            display: flex;
+            gap: 5px;
+        }
+
+        .action-btn {
+            background: none;
+            border: 1px solid #ddd;
+            padding: 4px 8px;
+            border-radius: 3px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .json-viewer {
+            background: #2d3748;
+            color: #e2e8f0;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 12px;
+            padding: 15px;
+            overflow: auto;
+            white-space: pre-wrap;
+        }
+
+        /* Credential Capture Modal */
+        .credential-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 200000;
+        }
+
+        .credential-form {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            max-width: 450px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .credential-header {
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .credential-header h2 {
+            color: #2c3e50;
+            margin: 0 0 10px 0;
+            font-size: 24px;
+        }
+
+        .credential-header p {
+            color: #666;
+            margin: 0;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .credential-input-group {
+            margin-bottom: 20px;
+        }
+
+        .credential-label {
+            display: block;
+            margin-bottom: 8px;
+            color: #2c3e50;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .credential-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+            box-sizing: border-box;
+        }
+
+        .credential-input:focus {
+            outline: none;
+            border-color: #007acc;
+        }
+
+        .credential-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 25px;
+        }
+
+        .credential-btn {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .credential-btn.primary {
+            background: #007acc;
+            color: white;
+        }
+
+        .credential-btn.primary:hover {
+            background: #005a99;
+        }
+
+        .credential-btn.secondary {
+            background: #f8f9fa;
+            color: #666;
+            border: 1px solid #ddd;
+        }
+
+        .credential-btn.secondary:hover {
+            background: #e9ecef;
+        }
+
+        .credential-note {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 20px;
+            border-left: 4px solid #007acc;
+        }
+
+        .credential-note h4 {
+            margin: 0 0 8px 0;
+            color: #2c3e50;
+            font-size: 14px;
+        }
+
+        .credential-note p {
+            margin: 0;
+            font-size: 13px;
+            color: #666;
+            line-height: 1.4;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <!-- Side Panel -->
+        <div class="side-panel">
+            <!-- Browser Toolbar -->
+            <div class="toolbar">
+                <div class="nav-buttons">
+                    <button class="nav-btn" id="back-btn" title="Back">←</button>
+                    <button class="nav-btn" id="forward-btn" title="Forward">→</button>
+                    <button class="nav-btn" id="reload-btn" title="Reload">⟳</button>
+                </div>
+                <input type="text" class="url-bar" id="url-bar" placeholder="Enter URL..." style="user-select: text; -webkit-user-select: text;">
+            </div>
+
+            <!-- Recording Controls -->
+            <div class="recording-section">
+                <div class="section-title">Recording Controls</div>
+                <div class="recording-controls">
+                    <button class="control-btn record-btn" id="start-recording">
+                        <span class="record-icon">●</span>
+                        <span class="record-text">Record</span>
+                    </button>
+                    <button class="control-btn stop-btn hidden" id="stop-recording">
+                        <span class="record-icon">■</span>
+                        <span class="record-text">Stop</span>
+                    </button>
+                    <button class="control-btn" id="clear-actions">Clear</button>
+                </div>
+                <div class="recording-status">
+                    <div class="status-dot" id="recording-dot"></div>
+                    <span id="recording-text">Ready to record</span>
+                </div>
+                <div class="recording-status" style="margin-top: 8px;">
+                    <div class="status-dot" id="server-dot"></div>
+                    <span id="server-text">Connecting to Python server...</span>
+                </div>
+            </div>
+
+            <!-- Action Timeline -->
+            <div class="timeline-section">
+                <div class="section-title">Action Timeline</div>
+                <div class="action-list" id="action-list">
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🎬</div>
+                        <div>No actions recorded yet</div>
+                        <div style="font-size: 12px; margin-top: 4px;">Start recording to capture automation steps</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Web Scraping Tools -->
+            <div class="tools-section">
+                <div class="section-title">Automation Tools</div>
+                <div class="tool-grid">
+                    <button class="tool-btn" id="run-automation">
+                        <div class="tool-icon">▶️</div>
+                        <div>Run Script</div>
+                    </button>
+                    <button class="tool-btn" id="save-recording">
+                        <div class="tool-icon">💾</div>
+                        <div>Save</div>
+                    </button>
+                    <button class="tool-btn" id="google-signin">
+                        <div class="tool-icon">🔑</div>
+                        <div>Google Sign-In</div>
+                    </button>
+                    <button class="tool-btn" id="profile-check">
+                        <div class="tool-icon">👤</div>
+                        <div>Profile Status</div>
+                    </button>
+                    <button class="tool-btn" id="back-to-dashboard">
+                        <div class="tool-icon">📋</div>
+                        <div>Back to Dashboard</div>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Script Creation Modal -->
+    <div id="new-script-modal" class="credential-modal">
+        <div class="credential-modal-content">
+            <h3 style="margin-top: 0; color: #333;">📝 Create New Automation Script</h3>
+            <p style="color: #666; font-size: 14px; line-height: 1.4;">
+                Give your automation script a name and optionally provide credentials that will be used securely during recording.
+            </p>
+            
+            <div class="credential-form">
+                <div class="credential-field">
+                    <label>Script Name:</label>
+                    <input type="text" id="new-script-name" placeholder="Enter script name (e.g., 'Login to Amazon')" required>
+                </div>
+                
+                <div style="margin: 20px 0; padding: 15px; background: #f8f9fa; border-radius: 6px; border-left: 4px solid #007acc;">
+                    <h4 style="margin: 0 0 8px 0; color: #2c3e50; font-size: 14px;">🔐 Optional: Secure Credentials</h4>
+                    <p style="margin: 0; font-size: 13px; color: #666; line-height: 1.4;">
+                        Credentials will be stored securely with this script and automatically replace matching inputs during recording.
+                    </p>
+                </div>
+                
+                <div class="credential-field">
+                    <label>Username/Email (optional):</label>
+                    <input type="text" id="new-script-username" placeholder="Enter username or email">
+                </div>
+                
+                <div class="credential-field">
+                    <label>Password (optional):</label>
+                    <input type="password" id="new-script-password" placeholder="Enter password">
+                </div>
+                
+                <div class="credential-field">
+                    <label>Phone (optional):</label>
+                    <input type="text" id="new-script-phone" placeholder="Enter phone number">
+                </div>
+            </div>
+            
+            <div class="credential-actions">
+                <button class="credential-btn primary" id="create-script-and-start">Create & Start Recording</button>
+                <button class="credential-btn" id="create-script-only">Create Script Only</button>
+                <button class="credential-btn cancel" id="cancel-new-script">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script Dashboard - Now Main View -->
+    <div class="dashboard-overlay" id="dashboard-overlay" style="display: flex;">
+        <div class="dashboard-header">
+            <div class="dashboard-title">Automation Script Dashboard</div>
+            <button class="dashboard-close" id="dashboard-close" style="display: none;">Close Dashboard</button>
+        </div>
+        <div class="dashboard-content">
+            <div class="script-sidebar">
+                <div class="script-list-header">
+                    Saved Scripts
+                    <button class="editor-btn" id="new-script" style="float: right; font-size: 11px; padding: 4px 8px;">+ New Script</button>
+                </div>
+                <div class="script-list" id="script-list">
+                    <div style="padding: 40px 20px; text-align: center; color: #666;">
+                        <div style="font-size: 48px; margin-bottom: 16px;">📝</div>
+                        <div style="font-size: 18px; margin-bottom: 8px;">Welcome to Automation Browser</div>
+                        <div style="font-size: 14px; margin-bottom: 20px;">Create your first automation script to get started</div>
+                        <button class="editor-btn primary" id="create-first-script" style="padding: 12px 24px; font-size: 14px;">+ Create Your First Script</button>
+                    </div>
+                </div>
+            </div>
+            <div class="script-editor">
+                <div class="editor-toolbar" style="display: none;" id="editor-toolbar">
+                    <button class="editor-btn primary" id="save-script">Save Script</button>
+                    <button class="editor-btn" id="test-script">Test Run</button>
+                    <button class="editor-btn" id="add-condition">Add Condition</button>
+                    <button class="editor-btn" id="add-action">Add Action</button>
+                    <button class="editor-btn" id="view-json">View JSON</button>
+                    <button class="editor-btn" id="start-recording-btn" style="background: #28a745; color: white;">🔴 Start Recording</button>
+                    <input type="text" id="script-name-input" placeholder="Script Name..." style="margin-left: auto; padding: 6px; border: 1px solid #ddd; border-radius: 4px;">
+                </div>
+                <div class="timeline-editor">
+                    <div class="phases-panel">
+                        <div class="phase-section">
+                            <div class="phase-header" onclick="togglePhase('initialization')">
+                                Initialization
+                                <span>▼</span>
+                            </div>
+                            <div class="phase-content active" id="phase-initialization">
+                                <div class="action-item-editor">
+                                    <div class="action-type">Navigate to URL</div>
+                                    <input type="url" placeholder="https://example.com" style="width: 100%; padding: 6px; margin-top: 5px;">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="phase-section">
+                            <div class="phase-header" onclick="togglePhase('authentication')">
+                                Authentication
+                                <span>▼</span>
+                            </div>
+                            <div class="phase-content" id="phase-authentication">
+                                <div class="condition-block">
+                                    <div class="condition-header">IF: Already Logged In</div>
+                                    <div style="font-size: 12px; color: #666;">Skip login actions</div>
+                                </div>
+                                <div class="condition-block">
+                                    <div class="condition-header">ELSE: Need to Login</div>
+                                    <div class="action-item-editor">
+                                        <div class="action-type">Choose Login Method</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="phase-section">
+                            <div class="phase-header" onclick="togglePhase('main-actions')">
+                                Main Actions
+                                <span>▼</span>
+                            </div>
+                            <div class="phase-content" id="phase-main-actions">
+                                <div class="action-item-editor">
+                                    <div class="action-type">Recorded Actions</div>
+                                    <div style="font-size: 12px; color: #666;">Actions from timeline recording</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="action-list-editor" id="action-editor">
+                        <div style="text-align: center; padding: 40px; color: #666;">
+                            <div style="font-size: 48px; margin-bottom: 10px;">📋</div>
+                            <div style="font-size: 16px; margin-bottom: 5px;">Select a phase to edit actions</div>
+                            <div style="font-size: 14px;">Use conditional blocks for branching logic</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Credential Capture Modal -->
+    <div class="credential-modal" id="credential-modal">
+        <div class="credential-form">
+            <div class="credential-header">
+                <h2>🔐 Secure Credential Setup</h2>
+                <p>To enable automatic credential detection during recording, please provide your login credentials. These will be stored securely and used to automatically replace keystrokes with credential actions.</p>
+            </div>
+            
+            <div class="credential-input-group">
+                <label class="credential-label" for="cred-username">Username/Email</label>
+                <input type="text" id="cred-username" class="credential-input" placeholder="your.email@example.com" autocomplete="username">
+            </div>
+            
+            <div class="credential-input-group">
+                <label class="credential-label" for="cred-password">Password</label>
+                <input type="password" id="cred-password" class="credential-input" placeholder="Enter your password" autocomplete="current-password">
+            </div>
+            
+            <div class="credential-input-group">
+                <label class="credential-label" for="cred-phone">Phone Number (Optional)</label>
+                <input type="tel" id="cred-phone" class="credential-input" placeholder="+1 (555) 123-4567" autocomplete="tel">
+            </div>
+            
+            <div class="credential-note">
+                <h4>Security & Privacy</h4>
+                <p>• Credentials are encrypted and stored locally<br>
+                • Never transmitted to external servers<br>
+                • Used only for automatic action replacement<br>
+                • Can be updated or deleted anytime</p>
+            </div>
+            
+            <div class="credential-buttons">
+                <button class="credential-btn secondary" id="cred-skip">Skip for Now</button>
+                <button class="credential-btn primary" id="cred-save">Save & Start Recording</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Initialize the application
+        let isRecording = false;
+        let actions = [];
+        let currentUrl = '';
+
+        // Add context menu for clipboard operations
+        document.addEventListener('contextmenu', (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+                e.preventDefault();
+                const contextMenu = document.createElement('div');
+                contextMenu.style.cssText = `
+                    position: fixed; top: ${e.clientY}px; left: ${e.clientX}px;
+                    background: white; border: 1px solid #ccc; border-radius: 4px;
+                    box-shadow: 0 2px 10px rgba(0,0,0,0.1); z-index: 10000;
+                    font-family: Arial, sans-serif; font-size: 14px;
+                `;
+                
+                const menuItems = [
+                    { label: 'Cut', action: () => { document.execCommand('cut'); } },
+                    { label: 'Copy', action: () => { document.execCommand('copy'); } },
+                    { label: 'Paste', action: () => { document.execCommand('paste'); } },
+                    { label: 'Select All', action: () => { e.target.select(); } }
+                ];
+                
+                menuItems.forEach(item => {
+                    const menuItem = document.createElement('div');
+                    menuItem.textContent = item.label;
+                    menuItem.style.cssText = `
+                        padding: 8px 16px; cursor: pointer; border-bottom: 1px solid #eee;
+                    `;
+                    menuItem.onmouseover = () => menuItem.style.background = '#f0f0f0';
+                    menuItem.onmouseout = () => menuItem.style.background = 'white';
+                    menuItem.onclick = () => {
+                        item.action();
+                        contextMenu.remove();
+                    };
+                    contextMenu.appendChild(menuItem);
+                });
+                
+                document.body.appendChild(contextMenu);
+                
+                // Remove context menu when clicking elsewhere
+                setTimeout(() => {
+                    document.addEventListener('click', () => contextMenu.remove(), { once: true });
+                }, 100);
+            }
+        });
+
+        // DOM elements
+        const backBtn = document.getElementById('back-btn');
+        const forwardBtn = document.getElementById('forward-btn');
+        const reloadBtn = document.getElementById('reload-btn');
+        const urlBar = document.getElementById('url-bar');
+        const startRecordingBtn = document.getElementById('start-recording');
+        const stopRecordingBtn = document.getElementById('stop-recording');
+        const clearActionsBtn = document.getElementById('clear-actions');
+        const runAutomationBtn = document.getElementById('run-automation');
+        const saveRecordingBtn = document.getElementById('save-recording');
+        const actionList = document.getElementById('action-list');
+        const recordingDot = document.getElementById('recording-dot');
+        const recordingText = document.getElementById('recording-text');
+        const serverDot = document.getElementById('server-dot');
+        const serverText = document.getElementById('server-text');
+
+        // Navigation controls
+        backBtn.addEventListener('click', () => {
+            window.electronAPI.browserBack();
+        });
+
+        forwardBtn.addEventListener('click', () => {
+            window.electronAPI.browserForward();
+        });
+
+        reloadBtn.addEventListener('click', () => {
+            window.electronAPI.browserReload();
+        });
+
+        urlBar.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                let url = urlBar.value.trim();
+                
+                // Handle Chrome internal URLs specially
+                if (url.startsWith('chrome://')) {
+                    // Keep chrome:// URLs as-is
+                    window.electronAPI.navigateTo(url);
+                } else if (!url.startsWith('http://') && !url.startsWith('https://') && !url.startsWith('file://')) {
+                    // Add https:// for regular domains
+                    url = 'https://' + url;
+                    window.electronAPI.navigateTo(url);
+                } else {
+                    // URL already has protocol
+                    window.electronAPI.navigateTo(url);
+                }
+            }
+        });
+
+        // Recording controls
+        startRecordingBtn.addEventListener('click', async () => {
+            try {
+                await window.electronAPI.startRecording();
+            } catch (error) {
+                console.error('Failed to start recording:', error);
+            }
+        });
+
+        stopRecordingBtn.addEventListener('click', async () => {
+            try {
+                const recordedActions = await window.electronAPI.stopRecording();
+                console.log('Recording stopped:', recordedActions);
+            } catch (error) {
+                console.error('Failed to stop recording:', error);
+            }
+        });
+        
+        // Start recording from dashboard
+        document.getElementById('start-recording-btn').addEventListener('click', async () => {
+            try {
+                hideDashboard();
+                await window.electronAPI.startRecording();
+            } catch (error) {
+                console.error('Failed to start recording:', error);
+            }
+        });
+        
+        // Back to dashboard button
+        document.getElementById('back-to-dashboard').addEventListener('click', () => {
+            showDashboard();
+        });
+
+        clearActionsBtn.addEventListener('click', async () => {
+            await window.electronAPI.clearActions();
+            actions = [];
+            updateActionList();
+        });
+
+        runAutomationBtn.addEventListener('click', async () => {
+            await window.electronAPI.runAutomation();
+        });
+
+        // Google Sign-In button
+        const googleSignInBtn = document.getElementById('google-signin');
+        googleSignInBtn.addEventListener('click', async () => {
+            await window.electronAPI.navigateTo('https://accounts.google.com/signin');
+        });
+
+        // Script Dashboard functionality - Now main view
+        const dashboardOverlay = document.getElementById('dashboard-overlay');
+        const dashboardClose = document.getElementById('dashboard-close');
+        const mainContainer = document.querySelector('.main-container');
+        
+        // Show dashboard on startup (now main view)
+        function showDashboard() {
+            dashboardOverlay.classList.remove('hidden');
+            mainContainer.classList.add('dashboard-active');
+            loadSavedScripts();
+        }
+        
+        function hideDashboard() {
+            dashboardOverlay.classList.add('hidden');
+            mainContainer.classList.remove('dashboard-active');
+        }
+        
+        // Initialize dashboard as main view
+        showDashboard();
+
+        dashboardClose.addEventListener('click', () => {
+            hideDashboard();
+        });
+
+        // Phase toggle functionality
+        function togglePhase(phaseId) {
+            const content = document.getElementById(`phase-${phaseId}`);
+            const header = content.previousElementSibling;
+            const arrow = header.querySelector('span');
+            
+            if (content.classList.contains('active')) {
+                content.classList.remove('active');
+                arrow.textContent = '▶';
+            } else {
+                content.classList.add('active');
+                arrow.textContent = '▼';
+            }
+        }
+
+        // Make togglePhase globally accessible
+        window.togglePhase = togglePhase;
+
+        // Script management with conditional branching
+        let currentScript = {
+            name: '',
+            phases: {
+                initialization: {
+                    actions: [
+                        { type: 'navigate', url: '', conditions: [] }
+                    ]
+                },
+                authentication: {
+                    conditions: [
+                        {
+                            type: 'if_logged_in',
+                            check: { element: '.user-avatar', exists: true },
+                            then: [],
+                            else: [
+                                {
+                                    type: 'choose_login_method',
+                                    options: {
+                                        google: [
+                                            { type: 'click', locators: [['css', '.google-login-btn']] }
+                                        ],
+                                        credentials: [
+                                            { type: 'enter-credential-username', locators: [['id', 'username']] },
+                                            { type: 'enter-credential-password', locators: [['id', 'password']] },
+                                            { type: 'click', locators: [['css', 'button[type="submit"]']] }
+                                        ]
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                },
+                main_actions: {
+                    actions: []
+                }
+            }
+        };
+
+        function loadSavedScripts() {
+            const scriptList = document.getElementById('script-list');
+            const savedScripts = JSON.parse(localStorage.getItem('automation-scripts') || '[]');
+            
+            if (savedScripts.length === 0) {
+                scriptList.innerHTML = `
+                    <div style="padding: 40px 20px; text-align: center; color: #666;">
+                        <div style="font-size: 48px; margin-bottom: 16px;">📝</div>
+                        <div style="font-size: 18px; margin-bottom: 8px;">Welcome to Automation Browser</div>
+                        <div style="font-size: 14px; margin-bottom: 20px;">Create your first automation script to get started</div>
+                        <button class="editor-btn primary" id="create-first-script" style="padding: 12px 24px; font-size: 14px;">+ Create Your First Script</button>
+                    </div>
+                `;
+                
+                // Re-attach event listener for dynamically created button
+                document.getElementById('create-first-script').addEventListener('click', showNewScriptModal);
+                return;
+            }
+
+            scriptList.innerHTML = '';
+            savedScripts.forEach((script, index) => {
+                const scriptItem = document.createElement('div');
+                scriptItem.className = 'script-item';
+                scriptItem.innerHTML = `
+                    <div class="script-name">${script.name || 'Unnamed Script'}</div>
+                    <div class="script-meta">
+                        ${script.phases.main_actions.actions.length} actions • 
+                        ${script.lastModified ? new Date(script.lastModified).toLocaleDateString() : 'Unknown date'}
+                        ${script.credentials && (script.credentials.username || script.credentials.password) ? ' • 🔐 Has credentials' : ''}
+                    </div>
+                `;
+                scriptItem.addEventListener('click', () => loadScript(script, index));
+                scriptList.appendChild(scriptItem);
+            });
+        }
+
+        function loadScript(script, index) {
+            currentScript = script;
+            document.getElementById('script-name-input').value = script.name || '';
+            
+            // Update active script in list
+            document.querySelectorAll('.script-item').forEach(item => item.classList.remove('active'));
+            document.querySelectorAll('.script-item')[index].classList.add('active');
+            
+            // Update action editor
+            updateActionEditor();
+        }
+
+        function updateActionEditor() {
+            const actionEditor = document.getElementById('action-editor');
+            actionEditor.innerHTML = `
+                <div style="padding: 20px;">
+                    <h3 style="margin-top: 0; color: #2c3e50;">Script Structure with Conditional Branching</h3>
+                    <div class="json-viewer">${JSON.stringify(currentScript.phases, null, 2)}</div>
+                    <div style="margin-top: 15px; padding: 10px; background: #f8f9fa; border-radius: 6px; font-size: 14px;">
+                        <strong>Features:</strong>
+                        <ul style="margin: 8px 0;">
+                            <li><strong>Conditional Logic:</strong> IF/ELSE branches for different scenarios</li>
+                            <li><strong>Login Method Selection:</strong> Google vs Credentials routing</li>
+                            <li><strong>State Detection:</strong> Check if already logged in</li>
+                            <li><strong>Nested Actions:</strong> Organized by phase and condition</li>
+                        </ul>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Save script functionality
+        document.getElementById('save-script').addEventListener('click', () => {
+            const scriptName = document.getElementById('script-name-input').value.trim();
+            if (!scriptName) {
+                alert('Please enter a script name');
+                return;
+            }
+
+            currentScript.name = scriptName;
+            currentScript.lastModified = new Date().toISOString();
+            
+            // Add current recorded actions to main_actions phase
+            if (actions.length > 0) {
+                currentScript.phases.main_actions.actions = [...actions];
+            }
+
+            const savedScripts = JSON.parse(localStorage.getItem('automation-scripts') || '[]');
+            
+            // Check if script already exists
+            const existingIndex = savedScripts.findIndex(s => s.name === scriptName);
+            if (existingIndex >= 0) {
+                savedScripts[existingIndex] = currentScript;
+            } else {
+                savedScripts.push(currentScript);
+            }
+            
+            localStorage.setItem('automation-scripts', JSON.stringify(savedScripts));
+            loadSavedScripts();
+            
+            alert('Script saved successfully with conditional branching!');
+        });
+
+        // New script creation functionality
+        document.getElementById('new-script').addEventListener('click', showNewScriptModal);
+        document.getElementById('create-first-script').addEventListener('click', showNewScriptModal);
+        
+        function showNewScriptModal() {
+            const modal = document.getElementById('new-script-modal');
+            modal.style.display = 'flex';
+            document.getElementById('new-script-name').focus();
+        }
+        
+        function hideNewScriptModal() {
+            const modal = document.getElementById('new-script-modal');
+            modal.style.display = 'none';
+            // Clear inputs
+            document.getElementById('new-script-name').value = '';
+            document.getElementById('new-script-username').value = '';
+            document.getElementById('new-script-password').value = '';
+            document.getElementById('new-script-phone').value = '';
+        }
+        
+        // Create script and start recording
+        document.getElementById('create-script-and-start').addEventListener('click', async () => {
+            const scriptName = document.getElementById('new-script-name').value.trim();
+            if (!scriptName) {
+                alert('Please enter a script name');
+                return;
+            }
+            
+            const credentials = {
+                username: document.getElementById('new-script-username').value || null,
+                password: document.getElementById('new-script-password').value || null,
+                phone: document.getElementById('new-script-phone').value || null
+            };
+            
+            createNewScript(scriptName, credentials);
+            hideNewScriptModal();
+            hideDashboard();
+            
+            // Store credentials if provided
+            if (credentials.username || credentials.password || credentials.phone) {
+                await window.electronAPI.storeCredentials(credentials);
+            }
+            
+            // Start recording
+            await window.electronAPI.startRecording();
+        });
+        
+        // Create script only (no recording)
+        document.getElementById('create-script-only').addEventListener('click', () => {
+            const scriptName = document.getElementById('new-script-name').value.trim();
+            if (!scriptName) {
+                alert('Please enter a script name');
+                return;
+            }
+            
+            const credentials = {
+                username: document.getElementById('new-script-username').value || null,
+                password: document.getElementById('new-script-password').value || null,
+                phone: document.getElementById('new-script-phone').value || null
+            };
+            
+            createNewScript(scriptName, credentials);
+            hideNewScriptModal();
+            showEditorForScript();
+        });
+        
+        document.getElementById('cancel-new-script').addEventListener('click', hideNewScriptModal);
+        
+        function createNewScript(name, credentials) {
+            currentScript = {
+                name: name,
+                credentials: credentials,
+                phases: {
+                    initialization: { actions: [{ type: 'navigate', url: '', conditions: [] }] },
+                    authentication: {
+                        conditions: [{
+                            type: 'if_logged_in',
+                            check: { element: '.user-avatar', exists: true },
+                            then: [],
+                            else: [{
+                                type: 'choose_login_method',
+                                options: {
+                                    google: [{ type: 'click', locators: [['css', '.google-login-btn']] }],
+                                    credentials: [
+                                        { type: 'enter-credential-username', locators: [['id', 'username']] },
+                                        { type: 'enter-credential-password', locators: [['id', 'password']] },
+                                        { type: 'click', locators: [['css', 'button[type="submit"]']] }
+                                    ]
+                                }
+                            }]
+                        }]
+                    },
+                    main_actions: { actions: [] }
+                }
+            };
+            
+            document.getElementById('script-name-input').value = name;
+        }
+        
+        function showEditorForScript() {
+            document.getElementById('editor-toolbar').style.display = 'flex';
+            updateActionEditor();
+        }
+
+        // View JSON functionality
+        document.getElementById('view-json').addEventListener('click', () => {
+            updateActionEditor();
+        });
+
+        // Profile Status check button
+        const profileCheckBtn = document.getElementById('profile-check');
+        profileCheckBtn.addEventListener('click', async () => {
+            // Check various Google services to verify sync status
+            const checks = [
+                'https://myaccount.google.com/',
+                'https://chrome.google.com/sync',
+                'https://bookmarks.google.com/',
+                'https://takeout.google.com/settings/takeout'
+            ];
+            
+            // Create a custom modal with clickable links instead of alert
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+                background: rgba(0,0,0,0.8); z-index: 10000; display: flex; 
+                align-items: center; justify-content: center;
+            `;
+            
+            const content = document.createElement('div');
+            content.style.cssText = `
+                background: white; padding: 20px; border-radius: 8px; 
+                max-width: 500px; max-height: 80%; overflow-y: auto;
+                color: black; font-family: Arial, sans-serif;
+            `;
+            
+            content.innerHTML = `
+                <h3 style="margin-top: 0;">Profile Status Check</h3>
+                <p>Click these links to verify sync:</p>
+                <ul style="list-style: none; padding: 0;">
+                    <li><a href="#" onclick="window.electronAPI.navigateTo('https://myaccount.google.com/'); return false;" 
+                           style="color: #1976d2; text-decoration: none; display: block; padding: 5px 0;">
+                        • Google Account: https://myaccount.google.com/</a></li>
+                    <li><a href="#" onclick="window.electronAPI.navigateTo('chrome://settings/syncSetup'); return false;"
+                           style="color: #1976d2; text-decoration: none; display: block; padding: 5px 0;">
+                        • Chrome Sync: chrome://settings/syncSetup</a></li>
+                    <li><a href="#" onclick="window.electronAPI.navigateTo('chrome://bookmarks/'); return false;"
+                           style="color: #1976d2; text-decoration: none; display: block; padding: 5px 0;">
+                        • Bookmarks: chrome://bookmarks/</a></li>
+                    <li><a href="#" onclick="window.electronAPI.navigateTo('chrome://history/'); return false;"
+                           style="color: #1976d2; text-decoration: none; display: block; padding: 5px 0;">
+                        • History: chrome://history/</a></li>
+                    <li><a href="#" onclick="window.electronAPI.navigateTo('chrome://settings/'); return false;"
+                           style="color: #1976d2; text-decoration: none; display: block; padding: 5px 0;">
+                        • Settings: chrome://settings/</a></li>
+                </ul>
+                <p><strong>If logged in and synced, you should see:</strong></p>
+                <ul>
+                    <li>✓ Your bookmarks and history</li>
+                    <li>✓ Saved passwords (with master password)</li>
+                    <li>✓ Extensions and settings</li>
+                    <li>✓ Open tabs from other devices</li>
+                </ul>
+                <button onclick="this.closest('div').parentElement.remove()" 
+                        style="background: #1976d2; color: white; border: none; padding: 8px 16px; 
+                               border-radius: 4px; cursor: pointer; margin-top: 10px;">Close</button>
+            `;
+            
+            modal.appendChild(content);
+            document.body.appendChild(modal);
+            
+            // Close modal when clicking outside
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.remove();
+                }
+            });
+        });
+
+        // Event listeners for electron events
+        window.electronAPI.onUrlChanged((event, url) => {
+            currentUrl = url;
+            urlBar.value = url;
+        });
+
+        window.electronAPI.onRecordingStatus((event, recording) => {
+            isRecording = recording;
+            updateRecordingUI();
+        });
+
+        window.electronAPI.onActionRecorded((event, action) => {
+            actions.push(action);
+            updateActionList();
+        });
+
+        window.electronAPI.onActionsRecorded((event, recordedActions) => {
+            actions = recordedActions;
+            updateActionList();
+        });
+
+        window.electronAPI.onPythonServerStatus((event, status) => {
+            updateServerStatus(status);
+        });
+
+        window.electronAPI.onPythonMessage((event, message) => {
+            console.log('Python server message:', message);
+            // Handle automation feedback here
+        });
+
+        // UI update functions
+        function updateRecordingUI() {
+            if (isRecording) {
+                // Hide record button, show stop button
+                startRecordingBtn.classList.add('hidden');
+                stopRecordingBtn.classList.remove('hidden');
+                
+                // Update status indicators
+                recordingDot.classList.add('recording');
+                recordingText.textContent = 'Recording actions...';
+            } else {
+                // Show record button, hide stop button
+                startRecordingBtn.classList.remove('hidden');
+                stopRecordingBtn.classList.add('hidden');
+                
+                // Update status indicators
+                recordingDot.classList.remove('recording');
+                recordingText.textContent = 'Ready to record';
+            }
+        }
+
+        function updateServerStatus(status) {
+            const statusText = {
+                'connected': 'Python server connected',
+                'disconnected': 'Python server disconnected', 
+                'error': 'Python server error'
+            };
+
+            serverText.textContent = statusText[status] || 'Unknown status';
+            
+            if (status === 'connected') {
+                serverDot.classList.add('connected');
+            } else {
+                serverDot.classList.remove('connected');
+            }
+        }
+
+        function updateActionList() {
+            if (actions.length === 0) {
+                actionList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🎬</div>
+                        <div>No actions recorded yet</div>
+                        <div style="font-size: 12px; margin-top: 4px;">Start recording to capture automation steps</div>
+                    </div>
+                `;
+                return;
+            }
+
+            actionList.innerHTML = actions.map((action, index) => {
+                const time = new Date(action.timestamp).toLocaleTimeString();
+                const details = getActionDetails(action);
+                
+                return `
+                    <div class="action-item">
+                        <div class="action-header">
+                            <span class="action-type">${action.type}</span>
+                            <span class="action-time">${time}</span>
+                        </div>
+                        <div class="action-details">${details}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function getActionDetails(action) {
+            const frameInfo = action.frameId ? (action.isMainFrame ? ' [Main]' : ` [Frame: ${action.frameId}]`) : '';
+            
+            switch (action.type) {
+                case 'click':
+                    const locatorCount = action.locators ? action.locators.length : 0;
+                    const primaryLocator = action.locators && action.locators[0] ? `${action.locators[0][0]}=${action.locators[0][1].substring(0, 50)}` : (action.selector || 'element');
+                    const coordinates = action.absoluteX && action.absoluteY ? ` @(${Math.round(action.absoluteX)},${Math.round(action.absoluteY)})` : '';
+                    const elementInfo = action.tagName ? ` <${action.tagName}>` : '';
+                    return `Click${elementInfo}: ${primaryLocator}${action.text ? ` ("${action.text.substring(0, 20)}")` : ''}${coordinates} [${locatorCount} locators]${frameInfo}`;
+                case 'type':
+                    const typeLocatorCount = action.locators ? action.locators.length : 0;
+                    const typePrimaryLocator = action.locators && action.locators[0] ? `${action.locators[0][0]}=${action.locators[0][1]}` : action.selector;
+                    return `Type in ${typePrimaryLocator}: "${action.value}" [${typeLocatorCount} locators]${frameInfo}`;
+                case 'enter-credential-username':
+                    const userLocatorCount = action.locators ? action.locators.length : 0;
+                    const userPrimaryLocator = action.locators && action.locators[0] ? `${action.locators[0][0]}=${action.locators[0][1]}` : action.selector;
+                    return `🔐 Enter username in ${userPrimaryLocator} [${userLocatorCount} locators]${frameInfo}`;
+                case 'enter-credential-password':
+                    const passLocatorCount = action.locators ? action.locators.length : 0;
+                    const passPrimaryLocator = action.locators && action.locators[0] ? `${action.locators[0][0]}=${action.locators[0][1]}` : action.selector;
+                    return `🔐 Enter password in ${passPrimaryLocator} [${passLocatorCount} locators]${frameInfo}`;
+                case 'keypress':
+                    const keyDesc = action.key.length === 1 ? `"${action.key}"` : action.key;
+                    let modifierList = [];
+                    if (action.ctrlKey) modifierList.push('Ctrl');
+                    if (action.altKey) modifierList.push('Alt');
+                    if (action.shiftKey) modifierList.push('Shift');
+                    if (action.metaKey) modifierList.push('Cmd');
+                    const modifiers = modifierList.length > 0 ? ` (${modifierList.join('+')})` : '';
+                    return `Key: ${keyDesc}${modifiers}${frameInfo}`;
+                case 'navigate':
+                    const fromUrl = action.fromUrl ? ` (from ${new URL(action.fromUrl).hostname})` : '';
+                    return `Navigate to: ${action.url}${fromUrl}${frameInfo}`;
+                case 'scroll':
+                    return `Scroll to: x=${Math.round(action.x)}, y=${Math.round(action.y)}${frameInfo}`;
+                case 'recording-started':
+                    return `Recording started on: ${action.url}${frameInfo}`;
+                default:
+                    return JSON.stringify(action, null, 2);
+            }
+        }
+
+        // Initialize current URL
+        window.electronAPI.getCurrentUrl().then(url => {
+            currentUrl = url;
+            urlBar.value = url;
+        });
+
+        // Credential Modal Functions
+        function showCredentialModal() {
+            const modal = document.getElementById('credential-modal');
+            modal.style.display = 'block';
+            
+            // Focus first input
+            document.getElementById('credential-username').focus();
+        }
+
+        function hideCredentialModal() {
+            const modal = document.getElementById('credential-modal');
+            modal.style.display = 'none';
+            
+            // Clear inputs for security
+            document.getElementById('credential-username').value = '';
+            document.getElementById('credential-password').value = '';
+            document.getElementById('credential-phone').value = '';
+        }
+
+        // Credential Modal Event Handlers
+        document.getElementById('start-recording-with-creds').addEventListener('click', async () => {
+            const username = document.getElementById('credential-username').value;
+            const password = document.getElementById('credential-password').value;
+            const phone = document.getElementById('credential-phone').value;
+
+            // Store credentials securely in main process
+            if (username || password || phone) {
+                await window.electronAPI.storeCredentials({
+                    username: username || null,
+                    password: password || null,
+                    phone: phone || null
+                });
+            }
+
+            // Hide modal and start recording
+            hideCredentialModal();
+            await window.electronAPI.startRecording();
+        });
+
+        document.getElementById('skip-credentials').addEventListener('click', async () => {
+            hideCredentialModal();
+            await window.electronAPI.startRecording();
+        });
+
+        document.getElementById('cancel-recording').addEventListener('click', () => {
+            hideCredentialModal();
+        });
+
+        // Close modal on escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                const modal = document.getElementById('credential-modal');
+                if (modal.style.display === 'block') {
+                    hideCredentialModal();
+                }
+            }
+        });
+
+        // Close modal on outside click
+        document.getElementById('credential-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'credential-modal') {
+                hideCredentialModal();
+            }
+        });
+
+        console.log('Automation Browser UI loaded');
+    </script>
+</body>
+</html>
