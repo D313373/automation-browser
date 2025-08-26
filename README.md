@@ -1,53 +1,132 @@
 # Automation Browser
 
-A native desktop automation browser built with Electron that functions exactly like Chrome but includes an integrated side panel with timeline recording and web scraping tools.
+A native desktop automation browser built with Electron that functions exactly like Chrome but includes an integrated side panel with timeline recording and web automation tools.
 
-## Features
+## ✨ Features
 
-- **Native Browser**: Built with Electron, functions like Chrome
-- **Dashboard-First Design**: Create named scripts before recording
-- **Timeline Recording**: Visual automation builder in side panel
-- **Python Server Backend**: Uses undetected_chromedriver and Selenium
-- **Secure Chrome Profile Integration**: Stealth "Sign in with Google" automation
-- **Credential Management**: Per-script credential storage for secure automation
-- **Script Sharing**: Share automation scripts without exposing credentials
-- **Conditional Branching**: JSON scripts support different automation paths
+- **Native Browser Experience**: Built with Electron, providing a Chrome-like browsing experience
+- **Visual Automation Builder**: Record and replay browser interactions with ease
+- **Dashboard Interface**: Manage and organize your automation scripts
+- **Python Backend**: Leverages undetected_chromedriver for reliable automation
+- **Secure Credential Management**: Store and manage credentials securely
+- **Cross-Platform**: Works on Windows, macOS, and Linux
+- **Developer Tools**: Built-in developer tools for debugging and inspection
+- **Modular Architecture**: Easy to extend and customize
 
-## Quick Start
+## 🚀 Quick Start
 
-1. **Extract and Setup**:
+### Prerequisites
+
+- Node.js 16+ and npm 8+
+- Python 3.7+
+- Chrome/Chromium browser installed
+
+### Installation
+
+1. **Clone the repository**:
    ```bash
-   # Extract the files
-   tar -xzf automation-browser-CLEAN-REPOSITORY.tar.gz
+   git clone https://github.com/your-username/automation-browser.git
    cd automation-browser
-   
-   # Install Node.js dependencies
+   ```
+
+2. **Install Node.js dependencies**:
+   ```bash
    npm install
-   
-   # Install Python dependencies
+   ```
+
+3. **Install Python dependencies**:
+   ```bash
    cd python-server
    pip install -r requirements.txt
    cd ..
    ```
 
-2. **Launch the Application**:
-   ```bash
-   # Run the sync and launch script
-   ./sync-and-launch.sh
-   ```
+### Running the Application
 
-3. **Create Your First Script**:
-   - Application opens with dashboard view
-   - Click "New Script" to create automation
-   - Optionally add credentials for secure automation
-   - Start recording browser interactions in the side panel
+```bash
+# Start the application
+npm start
 
-## Architecture
+# For development with hot-reload
+npm run dev
+```
 
-- **Frontend**: Electron with integrated browser and side panel
-- **Backend**: Python server with undetected_chromedriver
-- **Communication**: WebSocket between Electron and Python server
-- **Security**: Credential pre-capture system prevents sensitive data exposure
+### Creating Your First Automation
+
+1. Launch the application
+2. Click "New Script" in the dashboard
+3. Enter a name and description for your script
+4. Click the record button to start capturing browser interactions
+5. Interact with web pages as needed
+6. Click stop when finished
+7. Save and replay your automation
+
+## 🏗️ Project Structure
+
+```
+automation-browser/
+├── src/                      # Main application source
+│   ├── browser/             # Browser window management
+│   ├── ipc/                 # Inter-process communication handlers
+│   ├── python/              # Python server integration
+│   ├── recording/           # Recording functionality
+│   ├── ui/                  # UI components and menus
+│   └── utils/               # Utility functions
+├── python-server/           # Python automation server
+│   ├── server.py           # WebSocket server
+│   └── requirements.txt    # Python dependencies
+├── renderer/               # Frontend code
+│   └── index.html          # Main window HTML
+├── package.json            # Node.js dependencies
+└── README.md               # This file
+```
+
+## 🔌 Architecture
+
+- **Frontend**: Electron with React for UI components
+- **Backend**: Python WebSocket server with undetected_chromedriver
+- **Communication**: WebSocket for real-time messaging
+- **Security**: Secure credential storage with encryption
+- **Logging**: Comprehensive logging system for debugging
+
+## 🛠 Development
+
+### Building for Production
+
+```bash
+# Build the application
+npm run build
+
+# Package for current platform
+npm run dist
+```
+
+### Debugging
+
+- Use Chrome DevTools (Cmd+Option+I or Ctrl+Shift+I)
+- Check logs in:
+  - macOS: `~/Library/Logs/automation-browser/main.log`
+  - Windows: `%USERPROFILE%\AppData\Roaming\automation-browser\logs`
+  - Linux: `~/.config/automation-browser/logs`
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🙏 Acknowledgments
+
+- [Electron](https://www.electronjs.org/)
+- [undetected-chromedriver](https://github.com/ultrafunkamsterdam/undetected-chromedriver)
+- [Selenium](https://www.selenium.dev/)
+- And all the amazing open-source libraries we depend on!
 
 ## File Structure
 

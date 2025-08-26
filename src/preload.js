@@ -2,11 +2,14 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 // Expose protected methods for the renderer process
 contextBridge.exposeInMainWorld('electronAPI', {
+  send: (channel, data) => ipcRenderer.send(channel, data),
   // Browser navigation
   navigateTo: (url) => ipcRenderer.invoke('navigate-to', url),
   browserBack: () => ipcRenderer.invoke('browser-back'),
   browserForward: () => ipcRenderer.invoke('browser-forward'),
   browserReload: () => ipcRenderer.invoke('browser-reload'),
+  showBrowserView: () => ipcRenderer.send('show-browser-view'),
+  hideBrowserView: () => ipcRenderer.send('hide-browser-view'),
   getCurrentUrl: () => ipcRenderer.invoke('get-current-url'),
   
   // Recording controls
