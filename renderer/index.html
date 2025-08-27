@@ -400,6 +400,104 @@
             opacity: 0.5;
         }
 
+        /* Action List */
+        .action-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            background-color: #f8f9fa;
+        }
+
+        .action-item {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            margin-bottom: 10px;
+            overflow: hidden;
+            transition: all 0.2s ease;
+        }
+
+        .action-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .action-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 15px;
+            background-color: #f1f3f5;
+            border-bottom: 1px solid #e9ecef;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .action-type {
+            font-weight: 600;
+            color: #212529;
+            font-size: 14px;
+            text-transform: capitalize;
+        }
+
+        .action-time {
+            font-size: 12px;
+            color: #6c757d;
+        }
+
+        .action-details {
+            padding: 12px 15px;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+            font-size: 13px;
+            color: #495057;
+            white-space: pre-wrap;
+            word-break: break-word;
+            background-color: white;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .empty-message {
+            text-align: center;
+            color: #6c757d;
+            padding: 20px;
+            font-size: 14px;
+            font-style: italic;
+        }
+
+        /* Highlight different action types */
+        .action-item[data-action-type="click"] .action-header {
+            border-left: 4px solid #4dabf7;
+        }
+
+        .action-item[data-action-type="type"] .action-header {
+            border-left: 4px solid #69db7c;
+        }
+
+        .action-item[data-action-type="navigate"] .action-header {
+            border-left: 4px solid #ffa94d;
+        }
+
+        /* Recording indicator */
+        .recording-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #ff6b6b;
+            margin-right: 6px;
+            animation: pulse 1.5s infinite;
+        }
+
+        .recording-dot.recording {
+            background-color: #ff6b6b;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.3; }
+            100% { opacity: 1; }
+        }
+
         /* Web Scraping Tools */
         .tools-section {
             padding: 20px;
@@ -438,13 +536,15 @@
         .dashboard-overlay {
             position: fixed;
             top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #f5f5f5;
-            z-index: 100000;
-            display: flex;
+            left: 350px;
+            right: 0;
+            bottom: 0;
+            background: white;
+            z-index: 9999; /* Increased z-index to ensure it's above everything */
+            display: none;
             flex-direction: column;
+            box-shadow: -2px 0 10px rgba(0, 0, 0, 0.2);
+            pointer-events: auto; /* Ensure it can receive mouse events */
         }
         
         .dashboard-overlay.hidden {
@@ -487,6 +587,16 @@
             overflow: hidden;
         }
 
+        .dashboard-close {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
         .script-sidebar {
             width: 300px;
             background: white;
@@ -509,13 +619,13 @@
         }
 
         .script-item {
-            padding: 12px;
-            border: 1px solid #ddd;
             border-radius: 6px;
             margin-bottom: 8px;
             cursor: pointer;
             background: white;
             transition: all 0.2s;
+            padding: 10px;
+            border: 1px solid #e0e0e0;
         }
 
         .script-item:hover {
@@ -1123,10 +1233,53 @@
         </div>
     </div>
 
-    <script src="js/state.js"></script>
-    <script src="js/ui.js"></script>
-    <script src="js/ipc.js"></script>
-    <script src="js/recording.js"></script>
-    <script src="js/scripting.js"></script>
+    <!-- Load shared state first -->
+    <script type="module" src="js/shared-state.js"></script>
+    <!-- Load core functionality -->
+    <script type="module" src="js/ipc.js"></script>
+    <script type="module" src="js/recording.js"></script>
+    <script type="module" src="js/scripting.js"></script>
+    <!-- Load UI last as it depends on everything else -->
+    <script type="module" src="js/ui.js"></script>
+    
+    <!-- Test button for debugging -->
+    <div style="position: fixed; bottom: 20px; right: 20px; z-index: 100000;">
+        <button id="test-new-script" style="padding: 10px 20px; background: #007acc; color: white; border: none; border-radius: 4px; cursor: pointer;">
+            Test New Script
+        </button>
+    </div>
+    <script>
+        document.getElementById('test-new-script').addEventListener('click', function() {
+            console.log('Test button clicked');
+            try {
+                // Check if the modal exists
+                const modal = document.getElementById('new-script-modal');
+                console.log('Test - Modal element:', modal);
+                
+                // Try to show the modal directly
+                if (modal) {
+                    console.log('Test - Showing modal directly');
+                    modal.style.display = 'flex';
+                    
+                    // Try to focus the input
+                    const input = modal.querySelector('input');
+                    if (input) {
+                        console.log('Test - Focusing input');
+                        input.focus();
+                    }
+                }
+                
+                // Check if the scripting module is available
+                if (window.showNewScriptModal) {
+                    console.log('Test - Calling showNewScriptModal()');
+                    showNewScriptModal();
+                } else {
+                    console.warn('Test - showNewScriptModal is not defined');
+                }
+            } catch (error) {
+                console.error('Test - Error:', error);
+            }
+        });
+    </script>
 </body>
 </html>

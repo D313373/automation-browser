@@ -1,3 +1,52 @@
+console.log('scripting.js is loaded');
+
+// Import shared state
+import { state } from './shared-state.js';
+
+// Initialize the scripting module
+function initScripting() {
+    try {
+        console.log('Initializing scripting module...');
+        
+        // Load saved scripts from localStorage
+        if (typeof loadSavedScripts === 'function') {
+            loadSavedScripts();
+        } else {
+            console.warn('loadSavedScripts function not found');
+        }
+        
+        // Set up event listeners
+        setupEventListeners();
+    } catch (error) {
+        console.error('Error initializing scripting module:', error);
+    }
+}
+
+// Set up event listeners for the scripting module
+function setupEventListeners() {
+    console.log('Setting up event listeners for scripting module...');
+    
+    // Add any necessary event listeners here
+    // For example:
+    const runBtn = document.getElementById('run-automation');
+    if (runBtn) {
+        runBtn.addEventListener('click', () => {
+            console.log('Run automation button clicked');
+            // Add your run automation logic here
+        });
+    }
+    
+    const googleSignInBtn = document.getElementById('google-signin');
+    if (googleSignInBtn) {
+        googleSignInBtn.addEventListener('click', () => {
+            console.log('Google Sign-In button clicked');
+            // Add your Google Sign-In logic here
+        });
+    }
+    
+    console.log('Event listeners setup complete');
+}
+
 // Global state for scripting
 // These variables are now declared in the main scope to avoid redeclaration
 if (typeof currentScript === 'undefined') {
@@ -25,43 +74,16 @@ googleSignInBtn.addEventListener('click', async () => {
 
 // Script management with conditional branching
 function initializeNewScript() {
-    return {
-        name: '',
-        phases: {
-            initialization: {
-                actions: [
-                    { type: 'navigate', url: '', conditions: [] }
-                ]
-            },
-            authentication: {
-                conditions: [
-                    {
-                        type: 'if_logged_in',
-                        check: { element: '.user-avatar', exists: true },
-                        then: [],
-                        else: [
-                            {
-                                type: 'choose_login_method',
-                                options: {
-                                    google: [
-                                        { type: 'click', locators: [['css', '.google-login-btn']] }
-                                    ],
-                                    credentials: [
-                                        { type: 'enter-credential-username', locators: [['id', 'username']] },
-                                        { type: 'enter-credential-password', locators: [['id', 'password']] },
-                                        { type: 'click', locators: [['css', 'button[type="submit"]']] }
-                                    ]
-                                }
-                            }
-                        ]
-                    }
-                ]
-            },
-            main_actions: {
-                actions: []
-            }
-        }
+    const newScript = {
+        id: Date.now().toString(),
+        name: 'New Script',
+        code: '// Write your script here\n// Use the browser object to interact with the page\n// Example: browser.navigateTo(\"https://example.com\");',
+        created: new Date().toISOString(),
+        modified: new Date().toISOString()
     };
+    
+    state.currentScript = newScript;
+    return newScript;
 }
 
 function loadSavedScripts() {
@@ -349,55 +371,102 @@ document.getElementById('save-script').addEventListener('click', () => {
     alert('Script saved successfully with conditional branching!');
 });
 
-// Debug: Check if button exists
-const newScriptBtn = document.getElementById('new-script');
-if (!newScriptBtn) {
-    console.error('Error: Could not find new-script button in the DOM');
-} else {
-    console.log('Found new-script button, adding click handler');
-    newScriptBtn.addEventListener('click', function(e) {
-        console.log('New Script button clicked. Event:', e);
-        try {
-            console.log('Initializing new script...');
-            currentScript = initializeNewScript();
-            console.log('New script initialized:', currentScript);
-            console.log('Showing new script modal...');
-            showNewScriptModal();
-            console.log('After showNewScriptModal() call');
-        } catch (error) {
-            console.error('Error in new script button handler:', error);
-            alert('Error creating new script: ' + error.message);
+// Set up event listeners
+// Set up event listeners for the new script button
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM fully loaded, setting up event listeners...');
+    
+    // Log all elements with ID 'new-script' for debugging
+    const newScriptButtons = document.querySelectorAll('#new-script');
+    console.log(`Found ${newScriptButtons.length} elements with ID 'new-script'`, newScriptButtons);
+    
+    // Event delegation for new script button
+    document.addEventListener('click', function(event) {
+        console.log('Document click event triggered');
+        
+        // Check if the clicked element or its parent is the new-script button
+        const newScriptBtn = event.target.closest('#new-script');
+        if (newScriptBtn) {
+            console.log('New Script button clicked via delegation', {
+                element: newScriptBtn,
+                id: newScriptBtn.id,
+                class: newScriptBtn.className,
+                text: newScriptBtn.textContent.trim(),
+                isConnected: newScriptBtn.isConnected
+            });
+            
+            try {
+                console.log('Initializing new script...');
+                const script = initializeNewScript();
+                console.log('New script initialized:', script);
+                
+                console.log('Showing new script modal...');
+                showNewScriptModal();
+            } catch (error) {
+                console.error('Error handling new script button click:', error);
+                alert('Error creating new script: ' + error.message);
+            }
         }
     });
-    console.log('Click handler added to new-script button');
-}
+    
+    // Initialize the scripting module
+    console.log('Initializing scripting module...');
+    initScripting();
+    
+    console.log('Event listeners setup complete');
+});
 
 function showNewScriptModal() {
     console.log('showNewScriptModal() called');
     try {
         console.log('Looking for new-script-modal element...');
         const modal = document.getElementById('new-script-modal');
-        console.log('Modal element:', modal);
+        console.log('Modal element found:', modal);
         
         if (!modal) {
             throw new Error('Could not find new-script-modal element');
         }
         
+        // Log current state
+        const currentDisplay = window.getComputedStyle(modal).display;
+        console.log('Current modal display style:', currentDisplay);
+        
+        // Force the modal to be visible
         console.log('Setting modal display to flex');
         modal.style.display = 'flex';
         
-        console.log('Setting focus to new-script-name input');
-        const nameInput = document.getElementById('new-script-name');
-        if (nameInput) {
-            nameInput.focus();
-        } else {
-            console.error('Could not find new-script-name input');
-        }
+        // Add a small delay to ensure the display change takes effect
+        setTimeout(() => {
+            console.log('Modal display style after setting to flex:', window.getComputedStyle(modal).display);
+            
+            // Focus the script name input
+            const scriptNameInput = modal.querySelector('#script-name');
+            if (scriptNameInput) {
+                scriptNameInput.focus();
+                console.log('Focused script name input');
+            } else {
+                console.warn('Could not find script name input in modal');
+            }
+            
+            // Log the modal's position and visibility
+            const rect = modal.getBoundingClientRect();
+            console.log('Modal position and size:', {
+                top: rect.top,
+                left: rect.left,
+                width: rect.width,
+                height: rect.height,
+                isInViewport: rect.top >= 0 && 
+                             rect.left >= 0 && 
+                             rect.bottom <= (window.innerHeight || document.documentElement.clientHeight) && 
+                             rect.right <= (window.innerWidth || document.documentElement.clientWidth)
+            });
+            
+            console.log('Modal should now be visible');
+        }, 50);
         
-        console.log('Modal should now be visible');
     } catch (error) {
-        console.error('Error in showNewScriptModal:', error);
-        throw error; // Re-throw to be caught by the caller
+        console.error('Error showing new script modal:', error);
+        alert('Error showing script modal: ' + error.message);
     }
 }
 

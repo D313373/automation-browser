@@ -171,16 +171,40 @@ class AutomationServer:
                 script_executor.close()
     
     async def handle_message(self, websocket, path):
-        """Handle incoming WebSocket messages"""
-        await self.register_client(websocket)
+        """
+        Handle incoming WebSocket messages
+        
+        Args:
+            websocket: The WebSocket connection
+            path: The request path (required by websockets library)
+        """
+        client_ip = websocket.remote_address[0] if websocket.remote_address else 'unknown'
+        client_id = f"{client_ip}-{id(websocket)}"
+        
+        logger.info(f"[{client_id}] New WebSocket connection from {client_ip} at path: {path}")
         
         try:
+            # Register the client
+            await self.register_client(websocket)
+            logger.info(f"[{client_id}] Client registered successfully")
+            
+            # Send a welcome message
+            await websocket.send(json.dumps({
+                'type': 'connection_established',
+                'message': 'Connected to automation server',
+                'client_id': client_id,
+                'timestamp': 12345  # This should be a real timestamp in a production environment
+            }))
+            
+            # Main message loop
             async for message in websocket:
                 try:
+                    logger.info(f"[{client_id}] Received raw message: {message[:200]}..." if len(str(message)) > 200 else f"[{client_id}] Received message: {message}")
+                    
                     data = json.loads(message)
                     message_type = data.get('type')
                     
-                    logger.info(f"Received message type: {message_type}")
+                    logger.info(f"[{client_id}] Processing message type: {message_type}")
                     
                     response = None
                     
@@ -189,30 +213,49 @@ class AutomationServer:
                     elif message_type == 'automation_script':
                         response = await self.handle_automation_script(data)
                     elif message_type == 'ping':
-                        response = {'type': 'pong', 'timestamp': data.get('timestamp')}
+                        response = {
+                            'type': 'pong', 
+                            'timestamp': data.get('timestamp'),
+                            'server_time': 12345  # This should be a real timestamp in a production environment
+                        }
+                    else:
+                        logger.warning(f"[{client_id}] Unknown message type: {message_type}")
+                        response = {
+                            'type': 'error',
+                            'message': f'Unknown message type: {message_type}'
+                        }
                     
                     if response:
+                        logger.info(f"[{client_id}] Sending response: {response}")
                         await websocket.send(json.dumps(response))
-                        
+                            
                 except json.JSONDecodeError as e:
-                    logger.error(f"Invalid JSON received: {e}")
+                    error_msg = f"Invalid JSON received: {e}"
+                    logger.error(f"[{client_id}] {error_msg}")
                     await websocket.send(json.dumps({
                         'type': 'error',
-                        'message': 'Invalid JSON format'
+                        'message': error_msg,
+                        'original_message': str(message)[:200]  # Truncate to avoid huge error messages
                     }))
                 except Exception as e:
-                    logger.error(f"Message handling error: {e}")
+                    error_msg = f"Message handling error: {e}"
+                    logger.error(f"[{client_id}] {error_msg}", exc_info=True)
                     await websocket.send(json.dumps({
                         'type': 'error',
-                        'message': str(e)
+                        'message': error_msg,
+                        'error_type': type(e).__name__
                     }))
                     
-        except websockets.exceptions.ConnectionClosed:
-            logger.info("Client connection closed")
+        except websockets.exceptions.ConnectionClosed as e:
+            logger.info(f"[{client_id}] Client connection closed: {e.code} - {e.reason or 'No reason provided'}")
         except Exception as e:
-            logger.error(f"WebSocket error: {e}")
+            logger.error(f"[{client_id}] WebSocket error: {e}", exc_info=True)
         finally:
-            await self.unregister_client(websocket)
+            try:
+                await self.unregister_client(websocket)
+                logger.info(f"[{client_id}] Client unregistered")
+            except Exception as e:
+                logger.error(f"[{client_id}] Error during client unregistration: {e}", exc_info=True)
     
     def signal_handler(self, signum, frame):
         """Handle shutdown signals"""
@@ -232,8 +275,49 @@ class AutomationServer:
         logger.info(f"Starting automation server on port {self.port}")
         
         try:
-            server = await websockets.serve(self.handle_message, "localhost", self.port)
-            logger.info(f"Automation server running on ws://localhost:{self.port}")
+            # Create a wrapper function that properly binds the instance
+            async def handler(websocket, path=None):
+                # Log the WebSocket connection attempt
+                client_ip = websocket.remote_address[0] if hasattr(websocket, 'remote_address') and websocket.remote_address else 'unknown'
+                client_id = f"{client_ip}-{id(websocket)}"
+                logger.info(f"[{client_id}] New WebSocket connection from {client_ip} at path: {path}")
+                
+                try:
+                    # Register the client
+                    await self.register_client(websocket)
+                    logger.info(f"[{client_id}] Client registered successfully")
+                    
+                    # Send a welcome message
+                    await websocket.send(json.dumps({
+                        'type': 'connection_established',
+                        'message': 'Connected to automation server',
+                        'client_id': client_id,
+                        'timestamp': 12345  # This should be a real timestamp in a production environment
+                    }))
+                    
+                    # Call the instance method with both parameters
+                    await self.handle_message(websocket, path or '')
+                    
+                except Exception as e:
+                    logger.error(f"[{client_id}] Error in WebSocket handler: {e}", exc_info=True)
+                    try:
+                        await websocket.close(1011, f"Server error: {str(e)[:125]}")
+                    except:
+                        pass  # Ignore errors during close
+                
+            # Listen on all interfaces (0.0.0.0) to accept connections from any IP
+            server = await websockets.serve(
+                handler,  # Use the wrapper function
+                "0.0.0.0",  # Listen on all interfaces
+                self.port,
+                # Enable additional logging for debugging
+                logger=logger,
+                # Add ping/pong for connection health
+                ping_interval=30,
+                ping_timeout=10,
+                close_timeout=5
+            )
+            logger.info(f"Automation server running on ws://0.0.0.0:{self.port} (accessible from any interface)")
             await server.wait_closed()
         except OSError as e:
             if "address already in use" in str(e).lower():

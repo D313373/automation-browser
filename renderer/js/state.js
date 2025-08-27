@@ -1,7 +1,7 @@
-// Global state for the application
-let isRecording = false;
-let actions = [];
-let currentScript = null;
-let currentUrl = '';
+// Shared state variables
+export let currentScript = null;
+export let savedScripts = [];
+export let isRecording = false;
+export let actions = [];
 
 console.log('State module loaded');

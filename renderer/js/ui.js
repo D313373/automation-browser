@@ -44,15 +44,34 @@ urlBar.addEventListener('keypress', (e) => {
 
 // Dashboard visibility
 function showDashboard() {
+    if (!dashboardOverlay || !mainContainer) {
+        console.error('Dashboard elements not found');
+        return;
+    }
+    
     dashboardOverlay.classList.remove('hidden');
     mainContainer.classList.add('dashboard-active');
-    loadSavedScripts();
+    
+    // Only call loadSavedScripts if it exists
+    if (typeof loadSavedScripts === 'function') {
+        loadSavedScripts();
+    } else {
+        console.warn('loadSavedScripts function not found');
+    }
 }
 
 function hideDashboard() {
+    if (!dashboardOverlay || !mainContainer) {
+        console.error('Dashboard elements not found');
+        return;
+    }
+    
     dashboardOverlay.classList.add('hidden');
     mainContainer.classList.remove('dashboard-active');
-    window.electronAPI.showBrowserView();
+    
+    if (window.electronAPI && typeof window.electronAPI.showBrowserView === 'function') {
+        window.electronAPI.showBrowserView();
+    }
 }
 
 window.hideDashboard = hideDashboard;

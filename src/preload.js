@@ -13,10 +13,41 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getCurrentUrl: () => ipcRenderer.invoke('get-current-url'),
   
   // Recording controls
-  startRecording: () => ipcRenderer.invoke('start-recording'),
-  stopRecording: () => ipcRenderer.invoke('stop-recording'),
-  recordAction: (action) => ipcRenderer.send('record-action', action),
-  clearActions: () => ipcRenderer.invoke('clear-actions'),
+  startRecording: async () => {
+    try {
+      console.log('[preload] Starting recording...');
+      const result = await ipcRenderer.invoke('start-recording');
+      console.log('[preload] Start recording result:', result);
+      return result;
+    } catch (error) {
+      console.error('[preload] Error in startRecording:', error);
+      throw error;
+    }
+  },
+  stopRecording: async () => {
+    try {
+      console.log('[preload] Stopping recording...');
+      const result = await ipcRenderer.invoke('stop-recording');
+      console.log('[preload] Stop recording result:', result);
+      return result;
+    } catch (error) {
+      console.error('[preload] Error in stopRecording:', error);
+      throw error;
+    }
+  },
+  recordAction: (action) => {
+    console.log('[preload] Recording action:', action?.type || 'unknown');
+    ipcRenderer.send('record-action', action);
+  },
+  clearActions: async () => {
+    try {
+      console.log('[preload] Clearing recorded actions');
+      return await ipcRenderer.invoke('clear-actions');
+    } catch (error) {
+      console.error('[preload] Error clearing actions:', error);
+      throw error;
+    }
+  },
   
   // Credential management
   storeCredential: (credential) => ipcRenderer.send('store-credential', credential),
@@ -29,6 +60,24 @@ contextBridge.exposeInMainWorld('electronAPI', {
   runAutomation: () => ipcRenderer.invoke('run-automation'),
   
   // Event listeners
+  onRecordingStateChanged: (callback) => {
+    const handler = (event, isRecording) => {
+      console.log(`[preload] Recording state changed: ${isRecording ? 'STARTED' : 'STOPPED'}`);
+      try {
+        callback(isRecording);
+      } catch (error) {
+        console.error('[preload] Error in recording state change handler:', error);
+      }
+    };
+    
+    ipcRenderer.on('recording-state-changed', handler);
+    
+    // Return cleanup function
+    return () => {
+      ipcRenderer.off('recording-state-changed', handler);
+    };
+  },
+  
   onBrowserLoading: (callback) => {
     ipcRenderer.on('browser-loading', callback);
   },

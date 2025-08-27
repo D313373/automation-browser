@@ -4,7 +4,7 @@ const windowManager = require('./browser/windowManager');
 const recordingManager = require('./recording/recordingManager');
 const { createMenu } = require('./ui/menu');
 const { setupIPCHandlers } = require('./ipc/handlers');
-const { setupErrorHandling, handleRendererCrash } = require('./utils/errorHandling');
+const { setupErrorHandling } = require('./utils/errorHandling');
 const { logger } = require('./utils/logger');
 const { startPythonServer } = require('./python/server');
 const fs = require('fs');
@@ -18,8 +18,9 @@ let pythonServer;
 let isInitialized = false; // Guard to prevent re-initialization
 let currentUrl = 'https://www.google.com';
 
-// Configure error handling first
-setupErrorHandling();
+// Initialize error handling
+const errorHandlers = setupErrorHandling();
+const { handleRendererCrash } = errorHandlers;
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling
 if (require('electron-squirrel-startup')) {
@@ -40,9 +41,6 @@ async function initializeApp() {
   }
   isInitialized = true;
   logger.info('Performing one-time application setup...');
-
-  // Initialize recording manager
-  recordingManager.initialize();
 
   // Start Python server
   try {
@@ -166,20 +164,63 @@ function setupEventListeners() {
 
 // --- Recording Logic ---
 
-function startRecording() {
-  isRecording = true;
-  recordingManager.start();
-  mainWindow.webContents.send('recording-status', true, recordingManager.getRecordedActions());
-  injectRecordingScript();
-  logger.info('Recording started.');
+async function startRecording() {
+  try {
+    if (isRecording) {
+      logger.warn('Recording already in progress');
+      return { success: false, message: 'Recording already in progress' };
+    }
+    
+    logger.info('Starting recording...');
+    const result = recordingManager.startRecording();
+    isRecording = true;
+    
+    // Notify renderer process
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('recording-state-changed', true);
+      mainWindow.webContents.send('recording-status', { 
+        isRecording: true, 
+        actionCount: recordingManager.getRecordedActions().length 
+      });
+    }
+    
+    // Inject recording script into the page
+    injectRecordingScript();
+    
+    logger.info('Recording started successfully');
+    return result;
+  } catch (error) {
+    logger.error('Error starting recording:', error);
+    throw error;
+  }
 }
 
-function stopRecording() {
-  isRecording = false;
-  recordingManager.stop();
-  mainWindow.webContents.send('recording-status', false, recordingManager.getRecordedActions());
-  // Optionally remove recording script from pages
-  logger.info('Recording stopped.');
+async function stopRecording() {
+  try {
+    if (!isRecording) {
+      logger.warn('No active recording to stop');
+      return { success: false, message: 'No active recording' };
+    }
+    
+    logger.info('Stopping recording...');
+    const result = recordingManager.stopRecording();
+    isRecording = false;
+    
+    // Notify renderer process
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('recording-state-changed', false);
+      mainWindow.webContents.send('recording-status', { 
+        isRecording: false, 
+        actionCount: recordingManager.getRecordedActions().length 
+      });
+    }
+    
+    logger.info('Recording stopped successfully');
+    return result;
+  } catch (error) {
+    logger.error('Error stopping recording:', error);
+    throw error;
+  }
 }
 
 function getRecordingScriptContent() {
@@ -426,15 +467,28 @@ function getRecordingScriptContent() {
 }
 
 function injectRecordingScript() {
-  if (!browserView || !browserView.webContents) return;
-  
-  const script = getRecordingScriptContent();
-  
-  browserView.webContents.executeJavaScript(script).catch(err => {
-    logger.error('Failed to inject recording script into main frame:', err);
-  });
+  try {
+    if (!browserView || !browserView.webContents || browserView.webContents.isDestroyed()) {
+      logger.warn('Cannot inject recording script: Browser view or webContents not available');
+      return false;
+    }
+    
+    const script = getRecordingScriptContent();
+    logger.debug('Injecting recording script into browser view');
+    
+    return browserView.webContents.executeJavaScript(script)
+      .then(() => {
+        logger.info('Successfully injected recording script');
+        return true;
+      })
+      .catch(error => {
+        logger.error('Failed to inject recording script:', error);
+        throw error;
+      });
+  } catch (error) {
+    logger.error('Error in injectRecordingScript:', error);
+    return Promise.reject(error);
+  }
 }
 
-// Global IPC listeners for recording control
-ipcMain.on('start-recording', startRecording);
-ipcMain.on('stop-recording', stopRecording);
+// IPC handlers are now registered in ipc/handlers.js
